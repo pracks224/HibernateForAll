@@ -53,4 +53,202 @@ ConnectionProvider
 It is a factory of JDBC connections. It abstracts the application from DriverManager or DataSource. It is optional.
 TransactionFactory
 It is a factory of Transaction. It is optional.
+https://www.javatpoint.com/example-to-create-hibernate-application-in-eclipse-ide
+
+First Example : 
+
+----hibernate.cfg.xml ---
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!--  Database connection settings  -->
+        <property name="connection.driver_class">org.h2.Driver</property>
+        <property name="connection.url">jdbc:h2:~/hcldb</property>
+        <property name="connection.username">sa</property>
+        <property name="connection.password"/>
+        <property name="dialect">org.hibernate.dialect.H2Dialect</property>
+        <!--  Echo all executed SQL to stdout  -->
+        <property name="show_sql">true</property>
+        <!--  Drop and re-create the database schema on startup  -->
+        <property name="hbm2ddl.auto">create-drop</property>
+        <mapping class="com.hcl.model.Message"/>
+    </session-factory>
+
+</hibernate-configuration>
+
+
+
+
+Master  POM 
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.hcl.trainings</groupId>
+  <artifactId>hibernate-trainings-parent</artifactId>
+  <packaging>pom</packaging>
+  <version>1.0.0</version>
+  <name>hibernate-parent</name>
+  <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.14.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>5.2.17.Final</version>
+        </dependency>
+        <dependency>
+    <groupId>org.javassist</groupId>
+    <artifactId>javassist</artifactId>
+    <version>3.25.0-GA</version>
+</dependency>
+       <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.197</version>        
+            </dependency>
+            
+        <!-- API, java.xml.bind module -->
+<dependency>
+    <groupId>jakarta.xml.bind</groupId>
+    <artifactId>jakarta.xml.bind-api</artifactId>
+    <version>2.3.2</version>
+</dependency>
+
+<!-- Runtime, com.sun.xml.bind module -->
+<dependency>
+    <groupId>org.glassfish.jaxb</groupId>
+    <artifactId>jaxb-runtime</artifactId>
+    <version>2.3.2</version>
+</dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <showDeprecation>true</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <modules>
+    	<module>day-1</module>
+    </modules>
+</project>
+
+
+
+----------
+package com.hcl.model;
+
+import javax.persistence.*;
+
+@Entity
+public class Message {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    Long id;
+    @Column(nullable = false)
+    String text;
+
+    public Message(String text) {
+        setText(text);
+    }
+
+    public Message() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "id=" + getId() +
+                ", text='" + getText() + '\'' +
+                '}';
+    }
+}
+
+-----------
+
+package com.hcl.test;
+
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import com.hcl.model.Message;
+
+import java.util.List;
+
+import static org.testng.Assert.assertEquals;
+
+
+public class PersistenceTest {
+    private SessionFactory factory = null;
+
+    @BeforeClass
+    public void setup() {
+        StandardServiceRegistry registry = new StandardServiceRegistryBuilder()
+                .configure()
+                .build();
+        factory = new MetadataSources(registry).buildMetadata().buildSessionFactory();
+    }
+
+    @Test
+    public void saveMessage() {
+        Message message = new Message("Hello, world");
+        try (Session session = factory.openSession()) {
+            Transaction tx = session.beginTransaction();
+            session.persist(message);
+            tx.commit();
+        }
+    }
+
+    @Test(dependsOnMethods = "saveMessage")
+    public void readMessage() {
+        try (Session session = factory.openSession()) {
+            List<Message> list = session.createQuery("from Message", Message.class).list();
+
+            assertEquals(list.size(), 1);
+            for (Message m : list) {
+                System.out.println("!!!!"+m);
+            }
+        }
+    }
+}
 
